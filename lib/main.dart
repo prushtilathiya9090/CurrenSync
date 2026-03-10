@@ -153,11 +153,16 @@ class _SplashScreenState extends State<SplashScreen>
                             spreadRadius: -5)
                       ],
                     ),
-                    child: const Icon(Icons.currency_exchange_rounded,
-                        color: Colors.white, size: 48),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Image.asset(
+                        'assets/images/logo_Currensync.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  Text('VeriRate',
+                  Text('CurrenSync',
                       style: TextStyle(
                           color: isDark
                               ? ThemeProvider.darkTextPrim

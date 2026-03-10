@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('VeriRate',
+              Text('CurrenSync',
                   style: GoogleFonts.orbitron(
                       color: theme.textPrim(isDark),
                       fontSize: 22,
