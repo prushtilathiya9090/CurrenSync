@@ -2,6 +2,7 @@ import 'package:currency_converter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'providers/currency_provider.dart';
 import 'screens/home_screen.dart';
@@ -40,7 +41,7 @@ class CurrencyConverterApp extends StatelessWidget {
         ));
 
         return MaterialApp(
-          title: 'FXchange',
+          title: 'CurrenSync',
           debugShowCheckedModeBanner: false,
           themeMode: theme.themeMode,
 
@@ -137,55 +138,65 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+
+                  /// Logo Container
                   Container(
-                    width: 90, height: 90,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [ThemeProvider.accent, ThemeProvider.accentBlue],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                            color: ThemeProvider.accent.withOpacity(.35),
-                            blurRadius: 40,
-                            spreadRadius: -5)
-                      ],
-                    ),
+                    width: 200,
+                    height: 200,
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(0),
                       child: Image.asset(
-                        'assets/images/logo_Currensync.png',
+                        'assets/images/icon_logo.png',
                         fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text('CurrenSync',
-                      style: TextStyle(
-                          color: isDark
-                              ? ThemeProvider.darkTextPrim
-                              : ThemeProvider.lightTextPrim,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2)),
+
                   const SizedBox(height: 8),
-                  Text('Real-time currency converter',
-                      style: TextStyle(
-                          color: isDark
-                              ? ThemeProvider.darkTextHint
-                              : ThemeProvider.lightTextHint,
-                          fontSize: 14)),
-                  const SizedBox(height: 48),
+
+                  /// App Name
+                  Text(
+                    'CurrenSync',
+                    style: GoogleFonts.orbitron(
+                      color: isDark
+                          ? ThemeProvider.darkTextPrim
+                          : ThemeProvider.lightTextPrim,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.8,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  /// Subtitle
+                  Text(
+                    'Real-time Currency Converter',
+                    style: GoogleFonts.inter(
+                      color: isDark
+                          ? ThemeProvider.darkTextHint
+                          : ThemeProvider.lightTextHint,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+
+                  const SizedBox(height: 50),
+
+                  /// Loading Indicator
                   SizedBox(
-                    width: 40,
-                    child: LinearProgressIndicator(
-                      backgroundColor: isDark
-                          ? Colors.white10
-                          : ThemeProvider.lightBorder,
-                      valueColor: const AlwaysStoppedAnimation(
-                          ThemeProvider.accent),
+                    width: 120,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: LinearProgressIndicator(
+                        minHeight: 4,
+                        backgroundColor:
+                            isDark ? Colors.white10 : ThemeProvider.lightBorder,
+                        valueColor: const AlwaysStoppedAnimation(
+                          ThemeProvider.accent,
+                        ),
+                      ),
                     ),
                   ),
                 ],
