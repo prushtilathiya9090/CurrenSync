@@ -60,7 +60,9 @@ dev_dependencies:
 flutter_launcher_icons: 
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/logo_CurrenSync.png"
+  image_path: "assets/images/icon_logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/icon_logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

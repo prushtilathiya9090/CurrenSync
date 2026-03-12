@@ -103,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen>
         CurvedAnimation(
             parent: _ctrl, curve: const Interval(0, .6, curve: Curves.elasticOut)));
     _ctrl.forward();
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(PageRouteBuilder(
           pageBuilder: (_, __, ___) => const HomeScreen(),
