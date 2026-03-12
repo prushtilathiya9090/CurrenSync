@@ -228,14 +228,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Design Inspiration** - Modern fintech applications
 - **Community** - Feedback and contributions
 
-## Contact & Support
-
-- **Developer**: Dhruvin Katakiya
-- **Email**: your.email@example.com
-- **GitHub**: [@yourusername](https://github.com/yourusername)
-
----
-
 **Made with ❤️ using Flutter**
 
 ### Version History
