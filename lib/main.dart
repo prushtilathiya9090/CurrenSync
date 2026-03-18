@@ -1,8 +1,11 @@
 import 'package:currency_converter/providers/theme_provider.dart';
+import 'package:currency_converter/providers/ad_provider.dart';
+import 'package:currency_converter/services/ad_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'providers/currency_provider.dart';
 import 'screens/home_screen.dart';
@@ -10,12 +13,18 @@ import 'screens/home_screen.dart';
 void main() async {
   await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Google Mobile Ads SDK
+  await MobileAds.instance.initialize();
+  AdLogger.log('AdMob SDK initialized');
+  
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => CurrencyProvider()),
+        ChangeNotifierProvider(create: (_) => AdProvider()),
       ],
       child: const CurrencyConverterApp(),
     ),
@@ -88,13 +97,18 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _ctrl;
   late Animation<double> _fade, _scale;
+  bool _isFirstLaunch = true;
 
   @override
   void initState() {
     super.initState();
+    
+    // Add app lifecycle observer
+    WidgetsBinding.instance.addObserver(this);
+    
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200));
     _fade = Tween<double>(begin: 0, end: 1).animate(
@@ -103,6 +117,16 @@ class _SplashScreenState extends State<SplashScreen>
         CurvedAnimation(
             parent: _ctrl, curve: const Interval(0, .6, curve: Curves.elasticOut)));
     _ctrl.forward();
+    
+    // Show app open ad on first launch
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && _isFirstLaunch) {
+        _isFirstLaunch = false;
+        AdLogger.log('App launched - showing first app open ad');
+        context.read<AdProvider>().showAppOpenAd();
+      }
+    });
+    
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(PageRouteBuilder(
@@ -116,7 +140,21 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Show app open ad when app resumes from background (after 3+ seconds)
+    if (state == AppLifecycleState.resumed && !_isFirstLaunch) {
+      AdLogger.log('App resumed - showing app open ad');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          context.read<AdProvider>().showAppOpenAd();
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ctrl.dispose();
     super.dispose();
   }

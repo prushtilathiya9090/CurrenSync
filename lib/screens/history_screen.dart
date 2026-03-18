@@ -6,13 +6,38 @@ import 'package:intl/intl.dart';
 import '../providers/currency_provider.dart';
 import '../providers/theme_provider.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   final ThemeProvider theme;
-  const HistoryScreen({super.key, required this.theme});
+  final VoidCallback? onScreenOpen;
+  
+  const HistoryScreen({
+    super.key,
+    required this.theme,
+    this.onScreenOpen,
+  });
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  bool _hasNotifiedOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Notify parent screen that this screen was opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasNotifiedOpen && widget.onScreenOpen != null) {
+        _hasNotifiedOpen = true;
+        widget.onScreenOpen!();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = theme.isDark;
+    final isDark = widget.theme.isDark;
     return Consumer<CurrencyProvider>(
       builder: (context, provider, _) {
         final history = provider.conversionHistory;
@@ -21,14 +46,14 @@ class HistoryScreen extends StatelessWidget {
           return Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.history_rounded,
-                  color: theme.textHint(isDark).withOpacity(.3), size: 64),
+                  color: widget.theme.textHint(isDark).withOpacity(.3), size: 64),
               const SizedBox(height: 16),
               Text('No conversion history yet',
-                  style: TextStyle(color: theme.textHint(isDark), fontSize: 16)),
+                  style: TextStyle(color: widget.theme.textHint(isDark), fontSize: 16)),
               const SizedBox(height: 6),
               Text('Tap "Save Conversion" to record one',
                   style: TextStyle(
-                      color: theme.textHint(isDark).withOpacity(.6),
+                      color: widget.theme.textHint(isDark).withOpacity(.6),
                       fontSize: 13)),
             ]),
           );
@@ -43,7 +68,7 @@ class HistoryScreen extends StatelessWidget {
               children: [
                 Text('${history.length} saved',
                     style: TextStyle(
-                        color: theme.textHint(isDark), fontSize: 13)),
+                        color: widget.theme.textHint(isDark), fontSize: 13)),
                 GestureDetector(
                   onTap: () => _confirmClearAll(context, provider, isDark),
                   child: Text('Clear all',
@@ -74,7 +99,7 @@ class HistoryScreen extends StatelessWidget {
                     HapticFeedback.mediumImpact();
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: const Text('Record deleted'),
-                      backgroundColor: theme.surface(isDark),
+                      backgroundColor: widget.theme.surface(isDark),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -114,7 +139,7 @@ class HistoryScreen extends StatelessWidget {
                     from: from,
                     to: to,
                     time: time,
-                    theme: theme,
+                    theme: widget.theme,
                     isDark: isDark,
                     onDelete: () => _confirmDelete(context, provider, index, isDark),
                   ),
@@ -134,20 +159,20 @@ class HistoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: theme.surface(isDark),
+        backgroundColor: widget.theme.surface(isDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text('Delete Record',
             style: TextStyle(
-                color: theme.textPrim(isDark),
+                color: widget.theme.textPrim(isDark),
                 fontSize: 16,
                 fontWeight: FontWeight.w700)),
         content: Text('Remove this conversion from history?',
-            style: TextStyle(color: theme.textSec(isDark), fontSize: 13)),
+            style: TextStyle(color: widget.theme.textSec(isDark), fontSize: 13)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: TextStyle(color: theme.textHint(isDark))),
+                style: TextStyle(color: widget.theme.textHint(isDark))),
           ),
           TextButton(
             onPressed: () {
@@ -171,21 +196,21 @@ class HistoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: theme.surface(isDark),
+        backgroundColor: widget.theme.surface(isDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text('Clear All History',
             style: TextStyle(
-                color: theme.textPrim(isDark),
+                color: widget.theme.textPrim(isDark),
                 fontSize: 16,
                 fontWeight: FontWeight.w700)),
         content: Text(
             'This will permanently delete all ${provider.conversionHistory.length} records.',
-            style: TextStyle(color: theme.textSec(isDark), fontSize: 13)),
+            style: TextStyle(color: widget.theme.textSec(isDark), fontSize: 13)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: TextStyle(color: theme.textHint(isDark))),
+                style: TextStyle(color: widget.theme.textHint(isDark))),
           ),
           TextButton(
             onPressed: () {

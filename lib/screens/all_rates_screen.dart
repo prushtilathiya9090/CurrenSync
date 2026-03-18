@@ -8,7 +8,13 @@ import '../models/currency.dart';
 
 class AllRatesScreen extends StatefulWidget {
   final ThemeProvider theme;
-  const AllRatesScreen({super.key, required this.theme});
+  final VoidCallback? onScreenOpen;
+  
+  const AllRatesScreen({
+    super.key,
+    required this.theme,
+    this.onScreenOpen,
+  });
 
   @override
   State<AllRatesScreen> createState() => _AllRatesScreenState();
@@ -17,8 +23,21 @@ class AllRatesScreen extends StatefulWidget {
 class _AllRatesScreenState extends State<AllRatesScreen> {
   String _q = '';
   String _sort = 'name';
+  bool _hasNotifiedOpen = false;
 
   ThemeProvider get t => widget.theme;
+
+  @override
+  void initState() {
+    super.initState();
+    // Notify parent screen that this screen was opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasNotifiedOpen && widget.onScreenOpen != null) {
+        _hasNotifiedOpen = true;
+        widget.onScreenOpen!();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

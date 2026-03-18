@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/currency_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/ad_provider.dart';
 import '../models/currency.dart';
 import 'currency_picker_screen.dart';
 import 'all_rates_screen.dart';
@@ -37,6 +39,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         context.read<CurrencyProvider>().setAmount(val);
       }
     });
+
+    // Initialize banner ad (bottom only)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdProvider>().initializeBannerAd();
+    });
   }
 
   @override
@@ -53,6 +60,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _swapCtrl.forward(from: 0);
     p.swapCurrencies();
     HapticFeedback.mediumImpact();
+    
+    // Show interstitial ad
+    context.read<AdProvider>().showInterstitialAd();
   }
 
   void _setQuickAmount(int amount) {
@@ -79,10 +89,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   index: _tab,
                   children: [
                     _buildConverterTab(theme, isDark),
-                    AllRatesScreen(theme: theme),
-                    HistoryScreen(theme: theme),
+                    AllRatesScreen(theme: theme, onScreenOpen: _onAllRatesOpened),
+                    HistoryScreen(theme: theme, onScreenOpen: _onHistoryOpened),
                   ],
                 ),
+              ),
+              // Bottom Banner Ad (always visible)
+              Consumer<AdProvider>(
+                builder: (context, adProvider, _) {
+                  if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
+                    return Container(
+                      alignment: Alignment.center,
+                      width: adProvider.bannerAd!.size.width.toDouble(),
+                      height: adProvider.bannerAd!.size.height.toDouble(),
+                      child: AdWidget(ad: adProvider.bannerAd!),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
               _buildBottomNav(theme, isDark),
             ],
@@ -216,6 +240,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(10)),
                 duration: const Duration(seconds: 1),
               ));
+              
+              // Show interstitial ad
+              context.read<AdProvider>().showInterstitialAd();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 11),
@@ -758,6 +785,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (v >= 1000) return NumberFormat('#,##0.00').format(v);
     if (v >= 1) return NumberFormat('0.####').format(v);
     return NumberFormat('0.######').format(v);
+  }
+
+  void _onAllRatesOpened() {
+    // Show interstitial when user opens rates (high engagement point)
+    Future.delayed(const Duration(seconds: 2), () {
+      context.read<AdProvider>().showInterstitialAd();
+    });
+  }
+
+  void _onHistoryOpened() {
+    // Show interstitial when user views history (high engagement point)
+    Future.delayed(const Duration(seconds: 2), () {
+      context.read<AdProvider>().showInterstitialAd();
+    });
   }
 }
 
