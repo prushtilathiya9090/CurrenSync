@@ -43,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Initialize banner ad (bottom only)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AdProvider>().initializeBannerAd();
+      // Preload interstitial ad for later use
+      context.read<AdProvider>().preloadInterstitialAd();
     });
   }
 
@@ -146,6 +148,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 bg: theme.surface(isDark),
                 border: theme.border(isDark),
                 onTap: () => context.read<ThemeProvider>().toggleTheme(),
+              ),
+              const SizedBox(width: 8),
+              // Test Ads Button
+              _IconBtn(
+                icon: Icons.ads_click_rounded,
+                color: const Color(0xFF4CAF50),
+                bg: theme.surface(isDark),
+                border: theme.border(isDark),
+                onTap: () {
+                  // Show menu for ad testing
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('🧪 Test Ads'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Choose testing method:'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<AdProvider>().forceShowInterstitialAd();
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('⚡ Force Interstitial'),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<AdProvider>().reloadAllAds();
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('🔄 Reload All Ads'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(width: 8),
               if (provider.isLoading)

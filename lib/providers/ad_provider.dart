@@ -8,6 +8,7 @@ class AdProvider extends ChangeNotifier {
   BannerAd? _bannerAd;
   BannerAd? _topBannerAd;
   AppOpenAd? _appOpenAd;
+  InterstitialAd? _interstitialAd;
   bool _isBannerAdLoaded = false;
   bool _isTopBannerAdLoaded = false;
   bool _isInterstitialAdLoaded = false;
@@ -17,6 +18,7 @@ class AdProvider extends ChangeNotifier {
   static const int _interstitialCooldownMs = 30000; // 30 seconds between interstitials
   DateTime? _lastInterstitialShownTime;
   int _interstitialShowCount = 0;
+  bool _isLoadingInterstitial = false;
 
   BannerAd? get bannerAd => _bannerAd;
   BannerAd? get topBannerAd => _topBannerAd;
@@ -35,10 +37,13 @@ class AdProvider extends ChangeNotifier {
       );
 
       if (adUnitId == null) {
+        AdLogger.log('❌ No Top Banner Unit ID available (disabled in API)');
         _isTopBannerAdLoaded = false;
         notifyListeners();
         return;
       }
+      
+      AdLogger.log('📱 Loading Top Banner with Unit ID: $adUnitId');
 
       _topBannerAd = BannerAd(
         adUnitId: adUnitId,
@@ -75,10 +80,13 @@ class AdProvider extends ChangeNotifier {
       );
 
       if (adUnitId == null) {
+        AdLogger.log('❌ No Bottom Banner Unit ID available (disabled in API)');
         _isBannerAdLoaded = false;
         notifyListeners();
         return;
       }
+      
+      AdLogger.log('📱 Loading Bottom Banner with Unit ID: $adUnitId');
 
       _bannerAd = BannerAd(
         adUnitId: adUnitId,
@@ -106,45 +114,56 @@ class AdProvider extends ChangeNotifier {
     }
   }
 
-  /// Load interstitial ad
-  Future<InterstitialAd?> loadInterstitialAd() async {
+  /// Pre-load interstitial ad (public method - call this on app start)
+  Future<void> preloadInterstitialAd() async {
+    await _preloadInterstitialAd();
+  }
+
+  /// Internal method to pre-load interstitial ad
+  Future<void> _preloadInterstitialAd() async {
+    if (_isLoadingInterstitial) return;
+    
     try {
+      _isLoadingInterstitial = true;
+      
       final adUnitId = await AdService.getAdUnitId(
         adType: 'Interstitial',
         platform: Platform.isAndroid ? 'Android' : 'iOS',
       );
 
       if (adUnitId == null) {
+        AdLogger.log('❌ No Interstitial Unit ID available (disabled in API)');
         _isInterstitialAdLoaded = false;
+        _isLoadingInterstitial = false;
         notifyListeners();
-        return null;
+        return;
       }
-
-      InterstitialAd? interstitialAd;
+      
+      AdLogger.log('📺 Preloading Interstitial with Unit ID: $adUnitId');
 
       await InterstitialAd.load(
         adUnitId: adUnitId,
         request: const AdRequest(),
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (ad) {
-            interstitialAd = ad;
+            _interstitialAd = ad;
             _isInterstitialAdLoaded = true;
-            AdLogger.adLoaded('Interstitial');
+            _isLoadingInterstitial = false;
+            AdLogger.adLoaded('Interstitial (cached)');
             notifyListeners();
           },
           onAdFailedToLoad: (LoadAdError error) {
             _isInterstitialAdLoaded = false;
+            _isLoadingInterstitial = false;
             AdLogger.adFailed('Interstitial', error.message);
             notifyListeners();
           },
         ),
       );
-
-      return interstitialAd;
     } catch (e) {
       _isInterstitialAdLoaded = false;
+      _isLoadingInterstitial = false;
       notifyListeners();
-      return null;
     }
   }
 
@@ -157,10 +176,13 @@ class AdProvider extends ChangeNotifier {
       );
 
       if (adUnitId == null) {
+        AdLogger.log('❌ No App Open Unit ID available (disabled in API)');
         _isAppOpenAdLoaded = false;
         notifyListeners();
         return null;
       }
+      
+      AdLogger.log('🎬 Loading App Open with Unit ID: $adUnitId');
 
       AppOpenAd? appOpenAd;
 
@@ -242,42 +264,118 @@ class AdProvider extends ChangeNotifier {
     return elapsed >= _interstitialCooldownMs;
   }
 
-  /// Show interstitial ad with frequency capping
-  Future<void> showInterstitialAd({bool forceSilent = false}) async {
+  /// Show interstitial ad with frequency capping (uses cached ad if available)
+  Future<void> showInterstitialAd() async {
     try {
       // Check frequency capping
       if (!_canShowInterstitial()) {
         return;
       }
 
-      final interstitialAd = await loadInterstitialAd();
-      if (interstitialAd != null) {
+      // Check if we have a cached ad ready
+      if (_interstitialAd != null && _isInterstitialAdLoaded) {
+        final adToShow = _interstitialAd!;
+        _interstitialAd = null; // Clear the cache
+        _isInterstitialAdLoaded = false;
+        
         _lastInterstitialShownTime = DateTime.now();
         _interstitialShowCount++;
         AdLogger.adShown('Interstitial');
         
-        interstitialAd.fullScreenContentCallback = FullScreenContentCallback(
+        adToShow.fullScreenContentCallback = FullScreenContentCallback(
           onAdShowedFullScreenContent: (ad) {},
           onAdFailedToShowFullScreenContent: (ad, err) {
             ad.dispose();
           },
           onAdDismissedFullScreenContent: (ad) {
             ad.dispose();
+            // Preload next interstitial after this one is dismissed
+            _preloadInterstitialAd();
           },
         );
-        await interstitialAd.show();
+        
+        try {
+          await adToShow.show();
+        } catch (e) {
+          AdLogger.log('❌ Error showing interstitial: $e');
+        }
+      } else {
+        // No cached ad, trigger a preload for next time
+        AdLogger.log('⏳ No cached interstitial ready, preloading for next time');
+        _preloadInterstitialAd();
       }
-    } catch (e) {}
+    } catch (e) {
+      AdLogger.log('❌ Error in showInterstitialAd: $e');
+    }
   }
 
   /// Dispose all ads
   void disposeAds() {
     _bannerAd?.dispose();
     _bannerAd = null;
+    _topBannerAd?.dispose();
+    _topBannerAd = null;
     _appOpenAd?.dispose();
     _appOpenAd = null;
+    _interstitialAd?.dispose();
+    _interstitialAd = null;
     _isBannerAdLoaded = false;
+    _isTopBannerAdLoaded = false;
+    _isInterstitialAdLoaded = false;
+    _isAppOpenAdLoaded = false;
     notifyListeners();
+  }
+
+  /// Reload all ads (alternative method - useful for debugging)
+  Future<void> reloadAllAds() async {
+    AdLogger.log('🔄 Manual reload triggered - refreshing all ads');
+    disposeAds();
+    _interstitialAd?.dispose();
+    _interstitialAd = null;
+    _isInterstitialAdLoaded = false;
+    await Future.delayed(const Duration(milliseconds: 500));
+    await initializeBannerAd();
+    await preloadInterstitialAd();
+    notifyListeners();
+  }
+
+  /// Force show interstitial immediately (bypasses cooldown, uses cached if available)
+  Future<void> forceShowInterstitialAd() async {
+    try {
+      // If we have a cached interstitial ad, show it
+      if (_interstitialAd != null && _isInterstitialAdLoaded) {
+        final adToShow = _interstitialAd!;
+        _interstitialAd = null; // Clear the cache
+        _isInterstitialAdLoaded = false;
+        
+        _lastInterstitialShownTime = DateTime.now();
+        _interstitialShowCount++;
+        AdLogger.adShown('Interstitial (forced)');
+        
+        adToShow.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (ad) {},
+          onAdFailedToShowFullScreenContent: (ad, err) {
+            ad.dispose();
+          },
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            // Preload next interstitial after this one is dismissed
+            _preloadInterstitialAd();
+          },
+        );
+        
+        try {
+          await adToShow.show();
+        } catch (e) {
+          AdLogger.log('❌ Error showing forced interstitial: $e');
+        }
+      } else {
+        AdLogger.log('⚡ No cached interstitial, preloading and will show next time');
+        _preloadInterstitialAd();
+      }
+    } catch (e) {
+      AdLogger.log('❌ Error in forceShowInterstitialAd: $e');
+    }
   }
 
   @override

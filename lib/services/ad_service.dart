@@ -41,11 +41,22 @@ class AdService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final configs = data
+        final allConfigs = data
             .map((item) => AdData.fromJson(item as Map<String, dynamic>))
             .toList();
         
+        // Filter only ads for Currensync app
+        final configs = allConfigs
+            .where((ad) => ad.appName.toLowerCase() == 'currensync')
+            .toList();
+        
         AdLogger.apiConfigFetched(configs.length);
+        
+        // Log all fetched Unit IDs
+        for (var config in configs) {
+          AdLogger.log('📍 [${config.adType}] (${config.platform}) - Unit ID: ${config.adUnitId} - Status: ${config.isEnabled ? "Enable" : "Disable"}');
+        }
+        
         return configs;
       } else {
         AdLogger.apiError('Status code: ${response.statusCode}');
@@ -81,6 +92,7 @@ class AdService {
 
       return adConfig.isEnabled ? adConfig.adUnitId : null;
     } catch (e) {
+      AdLogger.log('❌ Error fetching Unit ID for $adType ($platform): $e');
       return null;
     }
   }
